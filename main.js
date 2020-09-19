@@ -75,6 +75,9 @@ client.on('message', (message) => {
             case "opt-in":
                 commandOptIn(message.author);
                 break;
+            case "opt-out":
+                commandOptOut(message.author);
+                break;
             default:
                 commandUnknown();
         }
@@ -108,6 +111,24 @@ function commandOptIn(author)
         botChannel.send(`${username}, you are already opted in`);
     }
 
+}
+
+//removes user who send the command from the opted-in list
+function commandOptOut(author)
+{
+    let username = author.username //gets the username of the auther who asked to opt-out
+    let position = config.optedIn.indexOf(username);
+    if(position != -1) //if user is in the list
+    {
+        config.optedIn.splice(position,1); //removes element at [positon] (name of user opting out)
+        saveConfig();
+        botChannel.send(`${username}, you have been opted out`);
+    }
+    else //if user is not in the list
+    {
+        botChannel.send(`${username}, you were not opted in.`);
+    }
+    console.log(config);
 }
 
 //for when typed command is not recognised
