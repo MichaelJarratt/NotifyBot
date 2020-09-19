@@ -30,16 +30,6 @@ client.once("ready", () => {
     console.log("online")
 })
 
-//triggers when someone sends a message
-client.on('message', (message) => {
-    //starts trying to interpret message is it begins with [prefix] and if the messages author was not a bot
-    if (message.content.startsWith(config.prefix) && !message.author.bot)
-    {
-        //console.log(message.channel);
-        message.channel.send("response");
-    }
-  });
-
 //triggers when someone leaves/joins a channel (also triggers when someone mutes/unmutes)
 client.on("voiceStateUpdate", () => {
     var botChannel = client.channels.cache.get(config.botChannel); //channel that bot will send notifications in
@@ -59,6 +49,16 @@ client.on("voiceStateUpdate", () => {
     console.log("updated last userCount: "+lastUserCount);
 
 })
+
+//triggers when someone sends a message
+client.on('message', (message) => {
+    //starts trying to interpret message is it begins with [prefix] and if the messages author was not a bot
+    if (message.content.startsWith(config.prefix) && !message.author.bot)
+    {
+        //console.log(message.channel);
+        message.channel.send("response");
+    }
+  });
 
 //code before this point is configuring the bot, line below is where is actually connects to the server and starts listening
 client.login(config.token);
