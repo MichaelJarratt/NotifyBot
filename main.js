@@ -1,69 +1,64 @@
 const Discord = require("discord.js"); //discord api 
+const client = new Discord.Client(); //the "client" is how the bot interacts with the discord server, for example wiritng a message in a text channel
 const fs = require("fs"); //file system library
-const config = JSON.parse(fs.readFileSync("./config.json")); //loads config file and access it with config const
-
-const client = new Discord.Client();
-const prefix = config.prefix;
+const configFile = "./botTestingConfig.json"
+const config = JSON.parse(fs.readFileSync(configFile)); //loads config file and access it with config const
+const prefix = config.prefix; //the prefix is the letter a message must begin with for the bot to read it
 var lastUserCount = 0; //keeps track of number of users in the audio channel (so it only notifies people when users goes from 0 -> 1)
+/*console.log(config);
+let optedIn = config.optedIn;
+optedIn[0] = "mike";
+console.log(config);
+saveConfig(); */
 
-//opens config file so that it can have data saved to it
-function saveData(data)
+
+//saves changed JSON data to configuration file (definied on line 3)
+function saveConfig()
 {
     try
     {
-        fs.writeFileSync("./botTestingConfig.json",JSON.stringify(data))
+        let buffer = JSON.stringify(config,null,2); //converts the JSON onbect to the string notation
+        fs.writeFileSync(configFile,buffer);
     }
     catch(error)
     {
         console.error(error);
     }
 }
-
-
+//triggers only once, when the bot is connected to the discord server and is "ready"
 client.once("ready", () => {
     console.log("online")
 })
 
 //triggers when someone sends a message
 client.on('message', (message) => {
-    if (!message.content.startsWith("!") || message.author.bot) return; //if it shouldn't be processed then return and ignore it
-
-    //console.log(message.channel);
-    message.channel.send("response");
+    //starts trying to interpret message is it begins with [prefix] and if the messages author was not a bot
+    if (message.content.startsWith(config.prefix) && !message.author.bot)
+    {
+        //console.log(message.channel);
+        message.channel.send("response");
+    }
   });
 
 //triggers when someone leaves/joins a channel (also triggers when someone mutes/unmutes)
 client.on("voiceStateUpdate", () => {
-    var botChannel = client.channels.cache.get(config.botChannel); 
-    var voiceChannel = client.channels.cache.get(config.voiceChannel); 
+    var botChannel = client.channels.cache.get(config.botChannel); //channel that bot will send notifications in
+    var voiceChannel = client.channels.cache.get(config.voiceChannel); //voice channel that bot monitors
 
-    var userCount = voiceChannel.members.size;
+    var userCount = voiceChannel.members.size; //number of people in the voice channel
     console.log("last userCount"+ lastUserCount);
     console.log("userCount: "+userCount);
 
-    if(userCount!== 0 && lastUserCount === 0) //if there is not zero people in the channel and there were previously zero people
+    //if the number of people in the channel has gone from 0 to >0
+    if(userCount!== 0 && lastUserCount === 0)
     {
         botChannel.send("@everyone come join us");
     }
 
     lastUserCount = userCount;
     console.log("updated last userCount: "+lastUserCount);
-    //botChannel.send("someone has joined a voice chat");
 
 })
 
-  //var v = new Discord.VoiceChannel(); v.em
-
-//returns token stored in text file
-function readTextFile(location)
-{
-    var fileRequest = new XMLHttpRequest();
-    fileRequest.open("GET","file:///"+location,false);
-    fileRequest.onload = function()
-    {
-        return fileRequest.responseText;
-    }
-}
-//console.log(readTextFile("D:\\programming\\javascript\\discord bot\\token.txt"))
-
+//code before this point is configuring the bot, line below is where is actually connects to the server and starts listening
 client.login(config.token);
