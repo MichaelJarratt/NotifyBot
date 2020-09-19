@@ -1,7 +1,6 @@
-const XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
-const Discord = require("discord.js");
-const config = require("./botTestingConfig.json");
+const Discord = require("discord.js"); //discord api 
 const fs = require("fs"); //file system library
+const config = JSON.parse(fs.readFileSync("./config.json")); //loads config file and access it with config const
 
 const client = new Discord.Client();
 const prefix = config.prefix;
