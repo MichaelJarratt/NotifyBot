@@ -51,7 +51,14 @@ client.on("voiceStateUpdate", () => {
     //if the number of people in the channel has gone from 0 to >0
     if(userCount!== 0 && lastUserCount === 0)
     {
-        botChannel.send("@everyone come join us");
+        let buffer = "";
+        config.optedIn.forEach(function(username)
+            {
+                buffer += `@${username} `
+            })
+        buffer += "come join us.";
+        botChannel.send(buffer);
+        botChannel.send("<@395934915658776578>");
     }
 
     lastUserCount = userCount;
