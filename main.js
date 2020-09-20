@@ -38,27 +38,25 @@ client.once("ready", () => {
 
 //triggers when someone leaves/joins a channel (also triggers when someone mutes/unmutes)
 client.on("voiceStateUpdate", () => {
-    //var botChannel = client.channels.cache.get(config.botChannel); //channel that bot will send notifications in
-    //var voiceChannel = client.channels.cache.get(config.voiceChannel); //voice channel that bot monitors
-
-    console.log(botChannel);
-    console.log(voiceChannel);
+    //console.log(botChannel);
+    //console.log(voiceChannel);
 
     var userCount = voiceChannel.members.size; //number of people in the voice channel
     console.log("last userCount"+ lastUserCount);
     console.log("userCount: "+userCount);
+    console.log(voiceChannel.members.user);
 
     //if the number of people in the channel has gone from 0 to >0
     if(userCount!== 0 && lastUserCount === 0)
     {
         let buffer = "";
-        config.optedIn.forEach(function(username)
+        config.optedIn.forEach(function(userID)
             {
-                buffer += `@${username} `
+                buffer += `<@${userID}>, `;
             })
         buffer += "come join us.";
-        botChannel.send(buffer);
-        botChannel.send("<@395934915658776578>");
+        //botChannel.send(buffer);
+        //botChannel.send("<@395934915658776578>");
     }
 
     lastUserCount = userCount;
@@ -107,9 +105,10 @@ function commandOptIn(author)
 {
     //console.log(author);
     let username = author.username; //gets username of the auther who asked to opt-in
-    if(!config.optedIn.includes(username)) //if the username does not already appear in the opted in array
+    let userID = author.id; //gets the ID of the user (this is what's used for tagging)
+    if(!config.optedIn.includes(userID)) //if the username does not already appear in the opted in array
     {
-        config.optedIn.push(username); //adds it to the config object
+        config.optedIn.push(userID); //adds it to the config object
         saveConfig(); //saves it to file
         botChannel.send(`${username}, you have been opted in.`);
     }
@@ -124,7 +123,8 @@ function commandOptIn(author)
 function commandOptOut(author)
 {
     let username = author.username //gets the username of the auther who asked to opt-out
-    let position = config.optedIn.indexOf(username);
+    let userID = author.id; //gets the ID of the user (this is what's used for tagging)
+    let position = config.optedIn.indexOf(userID);
     if(position != -1) //if user is in the list
     {
         config.optedIn.splice(position,1); //removes element at [positon] (name of user opting out)
