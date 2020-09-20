@@ -41,21 +41,30 @@ client.on("voiceStateUpdate", () => {
     //console.log(botChannel);
     //console.log(voiceChannel);
 
+    let members = voiceChannel.members; //members is a Map with info on users in the channel, the maps key is the user IDs
     var userCount = voiceChannel.members.size; //number of people in the voice channel
     console.log("last userCount"+ lastUserCount);
     console.log("userCount: "+userCount);
-    console.log(voiceChannel.members.user);
+    //console.log(Array.from(members.keys()));
 
     //if the number of people in the channel has gone from 0 to >0
     if(userCount!== 0 && lastUserCount === 0)
     {
+        let inChannel = Array.from(members.keys()); //gets userIDs of all users in the voiceChannel (typically just one, but redundency is important)
         let buffer = "";
         config.optedIn.forEach(function(userID)
             {
-                buffer += `<@${userID}>, `;
+                if(!inChannel.includes(userID)) //if this user is not already in the channel
+                {
+                    buffer += `<@${userID}>, `; //notify them
+                }
             })
-        buffer += "come join us.";
-        //botChannel.send(buffer);
+        console.log(buffer);
+        if(buffer !== "") //if the only person who is opted in is the person who joined the channel (fringe case)
+        {
+            buffer += "come join us.";
+            botChannel.send(buffer);
+        }
         //botChannel.send("<@395934915658776578>");
     }
 
