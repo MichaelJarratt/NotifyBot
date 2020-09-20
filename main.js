@@ -1,10 +1,14 @@
 const Discord = require("discord.js"); //discord api 
 const client = new Discord.Client(); //the "client" is how the bot interacts with the discord server, for example wiritng a message in a text channel
 const fs = require("fs"); //file system library
-const configFile = "./botTestingConfig.json"
-const config = JSON.parse(fs.readFileSync(configFile)); //loads config file and access it with config const
-const prefix = config.prefix; //the prefix is the letter a message must begin with for the bot to read it
-var lastUserCount = 0; //keeps track of number of users in the audio channel (so it only notifies people when users goes from 0 -> 1)
+const configFolder = "./config files/";
+const defaultConfigFile = configFolder+"default-config.json"
+var config = JSON.parse(fs.readFileSync(defaultConfigFile)); //loads config file and access it with config const
+
+var prefix = config.prefix; //the prefix is the letter a message must begin with for the bot to read it
+//var lastUserCount = 0; //keeps track of number of users in the audio channel (so it only notifies people when users goes from 0 -> 1)
+var lastUserCountMap = new Map();
+var currentGuild = null;
 var botChannel = null;
 var voiceChannel = null;
 
@@ -14,6 +18,21 @@ optedIn[0] = "mike";
 console.log(config);
 saveConfig(); */
 
+//
+function loadServerConfig(event)
+{
+    let guildID = event.guild.id; //gets ID of guild the event was from
+    if(guildID !== currentGuild) //if the current guildID is not correct for processing this event
+    {
+        currentGuild = guildID;
+        config = JSON.parse(fs.readFileSync(`${configFolder}${currentGuild}.json`)); //loads config for that server
+        //update settings
+        prefix = config.prefix;
+        botChannel = client.channels.cache.get(config.botChannel);
+        voiceChannel = client.channels.cache.get(config.voiceChannel);
+    }
+    //console.log(guildID);
+}
 
 //saves changed JSON data to configuration file (definied on line 3)
 function saveConfig()
@@ -21,7 +40,7 @@ function saveConfig()
     try
     {
         let buffer = JSON.stringify(config,null,2); //converts the JSON onbect to the string notation
-        fs.writeFileSync(configFile,buffer);
+        fs.writeFileSync(configFolder+currentGuild+".json",buffer); //writes to config file for current server
     }
     catch(error)
     {
@@ -29,26 +48,34 @@ function saveConfig()
     }
 }
 //triggers only once, when the bot is connected to the discord server and is "ready"
-client.once("ready", () => {
+client.once("ready", (event) => {
     console.log("online");
+    let guildIDs = Array.from(client.guilds.cache.keys()); //gets guild ID for each guild bot is in
+    guildIDs.forEach(function(guildID) //for every guild the bot is a part of
+    {
+        lastUserCountMap.set(guildID,0); //initiates the number of people in each voice channel as zero (if wrong will be corrected after first person joins/leaves)
+    })
+    //console.log(lastUserCountMap);
     //these must be defined once the bot has connected to the server
-    botChannel = client.channels.cache.get(config.botChannel); //channel that bot will send notifications in
-    voiceChannel = client.channels.cache.get(config.voiceChannel); //voice channel that bot monitors
+    //botChannel = client.channels.cache.get(config.botChannel); //channel that bot will send notifications in
+    //voiceChannel = client.channels.cache.get(config.voiceChannel); //voice channel that bot monitors
+    //console.log(client.channels);
 })
 
 //triggers when someone leaves/joins a channel (also triggers when someone mutes/unmutes)
-client.on("voiceStateUpdate", () => {
+client.on("voiceStateUpdate", (event) => {
     //console.log(botChannel);
     //console.log(voiceChannel);
-
+    loadServerConfig(event); //passes event so that the server ID can be discovered and used to load the correct config file
+    
     let members = voiceChannel.members; //members is a Map with info on users in the channel, the maps key is the user IDs
     var userCount = voiceChannel.members.size; //number of people in the voice channel
-    console.log("last userCount"+ lastUserCount);
-    console.log("userCount: "+userCount);
+    //console.log("last userCount"+ lastUserCount);
+    //console.log("userCount: "+userCount);
     //console.log(Array.from(members.keys()));
 
     //if the number of people in the channel has gone from 0 to >0
-    if(userCount!== 0 && lastUserCount === 0)
+    if(userCount!== 0 && lastUserCountMap.get(currentGuild) === 0) //
     {
         let inChannel = Array.from(members.keys()); //gets userIDs of all users in the voiceChannel (typically just one, but redundency is important)
         let buffer = "";
@@ -68,13 +95,15 @@ client.on("voiceStateUpdate", () => {
         //botChannel.send("<@395934915658776578>");
     }
 
-    lastUserCount = userCount;
-    console.log("updated last userCount: "+lastUserCount);
+    lastUserCountMap.set(currentGuild,userCount); // = userCount;
+    //console.log("updated last userCount: "+lastUserCount);
 
 })
 
 //triggers when someone sends a message
 client.on('message', (message) => {
+    loadServerConfig(message); //passes event so that the server ID can be discovered and used to load the correct config file
+
     //starts trying to interpret message is it begins with [prefix] and if the messages author was not a bot
     if (message.content.startsWith(config.prefix) && !message.author.bot)
     {

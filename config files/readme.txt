@@ -1,0 +1,1 @@
+Each server the bot is a part of will have an entry here with personalised settings
