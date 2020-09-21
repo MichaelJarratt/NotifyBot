@@ -71,37 +71,38 @@ client.on("voiceStateUpdate", (event) => {
     //console.log(botChannel);
     //console.log(voiceChannel);
     loadServerConfig(event); //passes event so that the server ID can be discovered and used to load the correct config file
-    
-    let members = voiceChannel.members; //members is a Map with info on users in the channel, the maps key is the user IDs
-    var userCount = voiceChannel.members.size; //number of people in the voice channel
-    //console.log("last userCount"+ lastUserCount);
-    //console.log("userCount: "+userCount);
-    //console.log(Array.from(members.keys()));
-
-    //if the number of people in the channel has gone from 0 to >0
-    if(userCount!== 0 && lastUserCountMap.get(currentGuild) === 0) //
+    if(config.voiceChannel !== "") //if the voice-channel is not configured then the member count can't be processed
     {
-        let inChannel = Array.from(members.keys()); //gets userIDs of all users in the voiceChannel (typically just one, but redundency is important)
-        let buffer = "";
-        config.optedIn.forEach(function(userID)
-            {
-                if(!inChannel.includes(userID)) //if this user is not already in the channel
-                {
-                    buffer += `<@${userID}>, `; //notify them
-                }
-            })
-        console.log(buffer);
-        if(buffer !== "") //if the only person who is opted in is the person who joined the channel (fringe case)
+        let members = voiceChannel.members; //members is a Map with info on users in the channel, the maps key is the user IDs
+        var userCount = voiceChannel.members.size; //number of people in the voice channel
+        //console.log("last userCount"+ lastUserCount);
+        //console.log("userCount: "+userCount);
+        //console.log(Array.from(members.keys()));
+
+        //if the number of people in the channel has gone from 0 to >0
+        if((userCount!== 0 && lastUserCountMap.get(currentGuild) === 0) && config.botChannel !== "") //if the bot-channel is not set up then no notification can be sent, however the number of members in the voice-channal can still be updated
         {
-            buffer += "come join us.";
-            botChannel.send(buffer);
+            let inChannel = Array.from(members.keys()); //gets userIDs of all users in the voiceChannel (typically just one, but redundency is important)
+            let buffer = "";
+            config.optedIn.forEach(function(userID)
+                {
+                    if(!inChannel.includes(userID)) //if this user is not already in the channel
+                    {
+                        buffer += `<@${userID}>, `; //notify them
+                    }
+                })
+            //console.log(buffer);
+            if(buffer !== "") //if the only person who is opted in is the person who joined the channel (fringe case)
+            {
+                buffer += "come join us.";
+                botChannel.send(buffer);
+            }
+            //botChannel.send("<@395934915658776578>");
         }
-        //botChannel.send("<@395934915658776578>");
+
+        lastUserCountMap.set(currentGuild,userCount); // = userCount;
+        //console.log("updated last userCount: "+lastUserCount);
     }
-
-    lastUserCountMap.set(currentGuild,userCount); // = userCount;
-    //console.log("updated last userCount: "+lastUserCount);
-
 })
 
 //triggers when someone sends a message
@@ -199,7 +200,7 @@ function commandSetBotChannel(channelID)
 {
     config.botChannel = channelID;
     botChannel = client.channels.cache.get(config.botChannel);
-    console.log(botChannel);
+    //console.log(botChannel);
     if(botChannel !== null && botChannel !== undefined)
     {
         botChannel.send("This is now my channel.")
@@ -209,7 +210,7 @@ function commandSetBotChannel(channelID)
         config.botChannel = ""; //do not save invalid ID, set the id as empty
         let defaultChannel = getDefaultChannel();
         //console.log(defaultChannel);
-        defaultChannel.send("Something went wrong, make sure you give me the ID, not the name.")
+        defaultChannel.send("Something went wrong, make sure you give me the ID for the bot-channel, not the name.")
     }
     saveConfig();
 }
@@ -218,9 +219,17 @@ function commandSetBotChannel(channelID)
 function commandSetVoiceChannel(channelID)
 {
     config.voiceChannel = channelID;
-    saveConfig();
     voiceChannel = client.channels.cache.get(config.voiceChannel);
-    botChannel.send(`Now monitoring ${voiceChannel.name}.`);
+    if(voiceChannel !== null && voiceChannel !== undefined) //if the voiceChannel is valid
+    {
+        botChannel.send(`Now monitoring ${voiceChannel.name}.`);
+    }
+    else //if [channelID] did not correspond to a valid channel
+    {
+        config.voiceChannel = ""; //do not save invalid ID, set the id as empty
+        botChannel.send("Something went wrong, make sure you give me the ID for the voice-channel, not the name.")
+    }
+    saveConfig();
 }
 
 //sets the command prefix according to the input, then saves the config
