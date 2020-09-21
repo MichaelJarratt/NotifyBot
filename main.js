@@ -25,7 +25,14 @@ function loadServerConfig(event)
     if(guildID !== currentGuild) //if the current guildID is not correct for processing this event
     {
         currentGuild = guildID;
-        config = JSON.parse(fs.readFileSync(`${configFolder}${currentGuild}.json`)); //loads config for that server
+        if(fs.existsSync(`${configFolder}${currentGuild}.json`)) //config file for the server already exists
+        {
+            config = JSON.parse(fs.readFileSync(`${configFolder}${currentGuild}.json`)); //loads config for that server
+        }
+        else //server does not have a config file
+        {
+            config = JSON.parse(fs.readFileSync(`${configFolder}default-config.json`)); //does not have bot/voice channels defined
+        }
         //update settings
         prefix = config.prefix;
         botChannel = client.channels.cache.get(config.botChannel);
@@ -55,11 +62,7 @@ client.once("ready", (event) => {
     {
         lastUserCountMap.set(guildID,0); //initiates the number of people in each voice channel as zero (if wrong will be corrected after first person joins/leaves)
     })
-    //console.log(lastUserCountMap);
-    //these must be defined once the bot has connected to the server
-    //botChannel = client.channels.cache.get(config.botChannel); //channel that bot will send notifications in
-    //voiceChannel = client.channels.cache.get(config.voiceChannel); //voice channel that bot monitors
-    //console.log(client.channels);
+    console.log(config.botChannel);
 })
 
 //triggers when someone leaves/joins a channel (also triggers when someone mutes/unmutes)
@@ -127,6 +130,39 @@ client.on('message', (message) => {
     }
   });
 
+// executes when bot joins a server, prompts users to configure it
+client.on("guildCreate",function(guild)
+{
+    //console.log(guild);
+    //console.log(guild.channels);
+    //let map = new Map(); 
+    currentGuild = guild.id;
+    let channel = getDefaultChannel(); //will hold ID of first text channel
+    
+    let buffer = "Thank you for inviting me to the server!\n"
+                +"Before we can begin, I need to be configured. The default prefix for my commads is \"!\"\n"
+                +"Thing #1: I need a channel to type to, give me the ID of your bot-channel using \"!set-bot-channel [channel ID]\"\n"
+                +"thing #2: I need a voice channel to monitor, give me the ID of this channel using \"!set-voice-channel [channel ID]\"\n"
+                +"Once these are done, you can use \"!help\" to find out about my other commands";
+    channel.send(buffer);
+})
+
+//will find and return the first text channel for this guild
+function getDefaultChannel()
+{
+    guild = client.guilds.cache.get(currentGuild); //gets guild object via guildID    
+    let found = false; //used because break statement cannot be used in a foreach
+    guild.channels.cache.forEach(function(channelCheck) //iterates over each channel
+    {
+        if(channelCheck.type === "text" && !found) //will find the first text channel then set the found flag
+        {
+            channel = channelCheck;
+            found = true;
+        }
+    })
+    return channel;
+}
+
 //############ defining recognised commands #######################
 function commandHelp()
 {
@@ -173,7 +209,6 @@ function commandOptOut(author)
     {
         botChannel.send(`${username}, you were not opted in.`);
     }
-    console.log(config);
 }
 
 //for when typed command is not recognised
