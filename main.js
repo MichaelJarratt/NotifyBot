@@ -1,4 +1,5 @@
 const Discord = require("discord.js"); //discord api 
+const { ADDRGETNETWORKPARAMS } = require("dns");
 const client = new Discord.Client(); //the "client" is how the bot interacts with the discord server, for example wiritng a message in a text channel
 const fs = require("fs"); //file system library
 const configFolder = "./config files/";
@@ -111,21 +112,37 @@ client.on('message', (message) => {
     if (message.content.startsWith(config.prefix) && !message.author.bot)
     {
         let command = message.content.substring(1); //removes [prefix] from command
+        command = command.toLowerCase();
+        let args = command.split(" "); //splits line into command+arguments, for commands that need arguments
+        command = args.shift(); //removes command and puts it into command variable, any arguments will be left in args
         //console.log(command);
-        
-        switch(command)
+
+        if(command === "set-bot-channel") //outside of switch because this is the only command that can be done before having a bot channel
         {
-            case "help":
-                commandHelp();
-                break;
-            case "opt-in":
-                commandOptIn(message.author);
-                break;
-            case "opt-out":
-                commandOptOut(message.author);
-                break;
-            default:
-                commandUnknown();
+            commandSetBotChannel(args[0]); //passes the second item in args (the argument)
+        }
+        else if(config.botChannel !== "") //if the bot channel has been configured
+        {
+            switch(command)
+            {
+                case "help":
+                    commandHelp();
+                    break;
+                case "opt-in":
+                    commandOptIn(message.author);
+                    break;
+                case "opt-out":
+                    commandOptOut(message.author);
+                    break;
+                case "set-prefix":
+                    commandSetPrefix(args[0]);
+                    break;
+                case "set-voice-channel":
+                    commandSetVoiceChannel(args[0]);
+                    break;
+                default:
+                    commandUnknown();
+            }
         }
     }
   });
@@ -167,11 +184,52 @@ function getDefaultChannel()
 function commandHelp()
 {
     let message = "Hello, my purpose is to notify people with an @[username] when a voice channel becomes active.\n"
-                 +`This is an opt-in service, if you wish to be notifed then type ${config.prefix}opt-in into this chat.\n`
+                 +`This is an opt-in service, if you wish to be notifed then type "${config.prefix}opt-in" into this chat.\n`
                  +"Valid  commands:\n"
                  +`${config.prefix}opt-in\n`
-                 +`${config.prefix}opt-out`;
+                 +`${config.prefix}opt-out\n`
+                 +`${config.prefix}set-bot-channel [channel ID]    -what channel I message in\n`
+                 +`${config.prefix}set-voice-channel [channel ID] -what voice channel I notify you about\n`
+                 +`${config.prefix}set-prefix [character]             -what character you use beofre sending me a command`;
     botChannel.send(message);
+}
+
+//sets the bot channel according to the input, then saves the config
+function commandSetBotChannel(channelID)
+{
+    config.botChannel = channelID;
+    botChannel = client.channels.cache.get(config.botChannel);
+    console.log(botChannel);
+    if(botChannel !== null && botChannel !== undefined)
+    {
+        botChannel.send("This is now my channel.")
+    }
+    else //could not get channel from ID, message default channel
+    {
+        config.botChannel = ""; //do not save invalid ID, set the id as empty
+        let defaultChannel = getDefaultChannel();
+        //console.log(defaultChannel);
+        defaultChannel.send("Something went wrong, make sure you give me the ID, not the name.")
+    }
+    saveConfig();
+}
+
+//sets the voice channel according to the input, then saves the config
+function commandSetVoiceChannel(channelID)
+{
+    config.voiceChannel = channelID;
+    saveConfig();
+    voiceChannel = client.channels.cache.get(config.voiceChannel);
+    botChannel.send(`Now monitoring ${voiceChannel.name}.`);
+}
+
+//sets the command prefix according to the input, then saves the config
+function commandSetPrefix(newPrefix)
+{
+    config.prefix = newPrefix.charAt(0); //if multiple characters are entered only the first will be used
+    saveConfig();
+    prefix = config.prefix;
+    botChannel.send(`Now using "${prefix}" as the new prefix.`)
 }
 
 //adds user who sent the command to the opted-in list
