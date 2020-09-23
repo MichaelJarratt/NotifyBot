@@ -134,6 +134,9 @@ client.on('message', (message) => {
                 case "set-voice-channel":
                     commandSetVoiceChannel(args[0]);
                     break;
+                case "show-opted-in":
+                    commandShowOptedIn();
+                    break;
                 default:
                     commandUnknown();
             }
@@ -186,7 +189,34 @@ function commandHelp()
                  +`${config.prefix}set-bot-channel [channel ID]    -what channel I message in\n`
                  +`${config.prefix}set-voice-channel [channel ID] -what voice channel I notify you about\n`
                  +`${config.prefix}set-prefix [character]             -what character you use before sending me a command`;
+                 +`${config.prefix}show-opted-in        -lists users who are opted in for notifcations`
     botChannel.send(message);
+}
+
+//[config.prefix]show-opted-in - writes the message "Opted in: [usernames..]" and lists all usernames opted in for this guild
+function commandShowOptedIn()
+{
+    buffer = "Opted in: ";
+    let guild = client.guilds.cache.get(currentGuild); //uses ID to get guildObject
+
+    config.optedIn.forEach(function(userID,index) //for each user opted in in this guild
+    {
+        let username = guild.member(userID).user.username; //guild method gets user object via their ID, then gets username from properties
+        buffer += `${username}`; //add user to the buffer
+        if(typeof config.optedIn[index+1] !== 'undefined') //if this isn't the last user
+        {
+            buffer += ", ";
+        }
+        else //if this is the last user that is opted in
+        {
+            buffer += ".";
+        }
+    })
+    if(buffer === "Opted in: ") //if buffer has not been added to, aka no users are opted in
+    {
+        buffer += "no one";
+    }
+    botChannel.send(buffer);
 }
 
 //[config.prefix]set-bot-channel [channelID] - sets the bot channel according to the input, then saves the config
@@ -285,6 +315,13 @@ function commandUnknown()
     botChannel.send(`I don't recognise that command.\nTry "${config.prefix}help" for valid commands.`);
 }
 //############ end defining recognised commands ###################
+
+//running a webserver so that Repl keeps the bot open
+//const express = require('express');
+//const app = express();
+//const port = 3000;
+//app.get('/', (req, res) => res.send('hello world!'));
+//app.listen(port, () => console.log("NotifyBot listening at https://NotifyBot.mikej155.repl.co:3000"));
 
 //code before this point is configuring the bot, line below is where is actually connects to the server and starts listening
 client.login(config.token);
