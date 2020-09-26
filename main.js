@@ -120,7 +120,7 @@ client.on('message', (message) => {
             switch(command)
             {
                 case "help":
-                    commandHelp();
+                    commandHelp(args[0]);
                     break;
                 case "opt-in":
                     commandOptIn(message.author);
@@ -138,7 +138,7 @@ client.on('message', (message) => {
                     commandShowOptedIn();
                     break;
                 default:
-                    commandUnknown();
+                    //commandUnknown(); //works but creates too much spam when operating other bots in the server that use the same prefix, as far as I can tell other bots ignore commands that aren't meant for them, so I will do the same with mine
             }
         }
     }
@@ -178,19 +178,58 @@ function getDefaultChannel()
 
 //############ defining recognised commands #######################
 
-//[config.prefix]help - gives users an overview of the bots purpose and it's available commands
-function commandHelp()
+/*  [config.prefix]help -gives the user a list of commands when NO ARGUMENT is passed
+*   When a user types help followed by the name of a command they will be given detailed information about what the command does.
+*   If the user requests help for an unrecognised command they will be told it does not exist.
+*/
+function commandHelp(argument)
 {
-    let message = "Hello, my purpose is to notify people with an @[username] when a voice channel becomes active.\n"
+    let buffer;
+    if(argument === "" || argument === null || argument === undefined) //if there is no argument show a list of commands and how to get more detail
+    {
+     buffer   =  "Hello, my purpose is to notify people with an @[username] when a voice channel becomes active.\n"
                  +`This is an opt-in service, if you wish to be notifed then type "${config.prefix}opt-in" into this chat.\n`
                  +"Valid  commands:\n"
-                 +`${config.prefix}opt-in\n`
-                 +`${config.prefix}opt-out\n`
-                 +`${config.prefix}set-bot-channel [channel ID]    -what channel I message in\n`
-                 +`${config.prefix}set-voice-channel [channel ID] -what voice channel I notify you about\n`
-                 +`${config.prefix}set-prefix [character]             -what character you use before sending me a command`;
-                 +`${config.prefix}show-opted-in        -lists users who are opted in for notifcations`
-    botChannel.send(message);
+                 +`  ${config.prefix}opt-in\n`
+                 +`  ${config.prefix}opt-out\n`
+                 +`  ${config.prefix}set-bot-channel [channel ID]  \n`
+                 +`  ${config.prefix}set-voice-channel [channel ID] \n`
+                 +`  ${config.prefix}set-prefix [character] \n`
+                 +`  ${config.prefix}show-opted-in \n`
+                 +`Type ${config.prefix}help [command] for information about each command. (don't include the brackets)\n`
+                 +`For Example: ${config.prefix}help set-voice-channel.`;
+    }
+    else //argument supplied - if the argument is a valid command tell the user about said command
+    {
+        if(argument.startsWith(config.prefix)) //if the user included the prefix infront of the command they wanted information about
+        {
+            argument = argument.substring(1); //removes the prefix
+        }
+        switch(argument)
+        {
+            case "opt-in":
+                buffer = `${config.prefix}opt-in opts you in to receive notifications when people join the monitored voice-channel.`;
+                break;
+            case "opt-out":
+                buffer = `${config.prefix}opt-out opts you out of receiving notifications.`
+                break;
+            case "set-bot-channel":
+                buffer = `${config.prefix}set-bot-channel [channel ID] tells me what channel to type to, I need the channel ID (not the name) which you can get by right-clicking on the channel with developer mode enabled.`
+                break;
+            case "set-voice-channel":
+                buffer = `${config.prefix}set-voice-channel [channel ID] tells me what voice channel to monitor. When the number of people in this channel goes from 0 -> <0 I will notify everyone who is opted in (notifcations are sent in the botchannel). I need the channel ID (not the name) which you can get by right-clicking on the channel with developer mode enabled.`
+                break;
+            case "set-prefix":
+                buffer = `${config.prefix}set-prefix [character] tells me what letter to look for when giving me a command. e.g. if the prefix is set to "-" then my help command would be "-help".`
+                break;
+            case "show-opted-in":
+                buffer = `${config.prefix}show-opted-in will give you a list of every user on the server who will be notified when someone joins the monitored voicechannel.`
+                break;
+            default:
+                buffer = `${argument} is not a recognised command`;
+        }
+    }
+    botChannel.send(buffer);
 }
 
 //[config.prefix]show-opted-in - writes the message "Opted in: [usernames..]" and lists all usernames opted in for this guild
@@ -225,7 +264,7 @@ function commandSetBotChannel(channelID)
     config.botChannel = channelID; //update config
     botChannel = client.channels.cache.get(config.botChannel); //update object via ID
 
-    if(botChannel !== null && botChannel !== undefined) //if the supplied ID corresponded to a valid channel
+    if(botChannel !== null && botChannel !== undefined && botChannel.type === "text") //if the supplied ID corresponded to a valid TEXT channel
     {
         botChannel.send("This is now my channel.")
     }
@@ -243,7 +282,7 @@ function commandSetVoiceChannel(channelID)
 {
     config.voiceChannel = channelID; //update config
     voiceChannel = client.channels.cache.get(config.voiceChannel); //update object via ID
-    if(voiceChannel !== null && voiceChannel !== undefined) //if the voiceChannel is valid
+    if(voiceChannel !== null && voiceChannel !== undefined && voiceChannel.type === "voice") //if the supplied ID corresponded to a valid VOICE channel
     {
         botChannel.send(`Now monitoring ${voiceChannel.name}.`);
     }
@@ -316,12 +355,8 @@ function commandUnknown()
 }
 //############ end defining recognised commands ###################
 
-//running a webserver so that Repl keeps the bot open
-//const express = require('express');
-//const app = express();
-//const port = 3000;
-//app.get('/', (req, res) => res.send('hello world!'));
-//app.listen(port, () => console.log("NotifyBot listening at https://NotifyBot.mikej155.repl.co:3000"));
+//const keepAlive = require("./server");
+//keepAlive();
 
 //code before this point is configuring the bot, line below is where is actually connects to the server and starts listening
 client.login(config.token);
