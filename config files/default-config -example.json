@@ -1,0 +1,7 @@
+{
+    "prefix": "!",      - default prefix before users make configurations
+    "token": "",        - disbord API token, used by bot to login to discord servers
+    "botChannel": "",   - ID of the text channel for the bot to type to
+    "voiceChannel": "", - ID of the voice channel for the bot to monitor
+    "optedIn": []       - list of IDs of users who are opted in for notifications
+  }

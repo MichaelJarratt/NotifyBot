@@ -1,0 +1,2 @@
+config files/*.json
+!config files/default-config -example.json
